@@ -176,6 +176,9 @@ data class NestedProvenanceScanResult(
         fun KnownProvenance.withVcsPath() =
             when (this) {
                 is RepositoryProvenance -> {
+                    if (this !in pathsWithinProvenances.keys) {
+                        println("$this not found in ${pathsWithinProvenances.keys}")
+                    }
                     val pathWithinProvenance = pathsWithinProvenances.getValue(this)
                     copy(vcsInfo = vcsInfo.copy(path = pathWithinProvenance))
                 }
@@ -199,6 +202,13 @@ data class NestedProvenanceScanResult(
                 scanResults.map { scanResult ->
                     when (val scanResultProvenance = scanResult.provenance) {
                         is RepositoryProvenance -> {
+                            println(
+                                "Filtering scan result with:" +
+                                        "\tprovenance = $provenance" +
+                                        "\tscanResult.provenance = $scanResultProvenance" +
+                                        "\tpath = $pathWithinProvenance"
+                            )
+
                             scanResult.filterByPath(pathWithinProvenance)
                                 .copy(provenance = scanResultProvenance.withVcsPath())
                         }

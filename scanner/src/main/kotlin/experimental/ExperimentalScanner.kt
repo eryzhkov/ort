@@ -359,6 +359,13 @@ class ExperimentalScanner(
                         reader.read(pkg, nestedProvenance, scannerCriteria)
                     }.onSuccess { results ->
                         results.forEach { result ->
+                            println("Read stored package results for ${pkg.id.toCoordinates()}:")
+                            result.scanResults.forEach { (provenance, scanResults) ->
+                                println("\t$provenance:")
+                                scanResults.forEach {
+                                    println("\t\t${it.provenance}.")
+                                }
+                            }
                             controller.addNestedScanResult(scanner, result)
                         }
                     }.onFailure { e ->
@@ -385,6 +392,10 @@ class ExperimentalScanner(
                     runCatching {
                         reader.read(provenance, scannerCriteria)
                     }.onSuccess { results ->
+                        println("Read stored provenance results for ${provenance}:")
+                        results.forEach { result ->
+                            println("\t${result.provenance}.")
+                        }
                         controller.addScanResults(scanner, provenance, results)
                     }.onFailure { e ->
                         e.showStackTrace()
@@ -555,6 +566,7 @@ fun ScanResult.toNestedProvenanceScanResult(nestedProvenance: NestedProvenance):
         //       correct scan result.
         listOf(
             copy(
+                provenance = provenance,
                 summary = summary.copy(
                     licenseFindings = licenseFindingsByProvenance[provenance].orEmpty().toSortedSet(),
                     copyrightFindings = copyrightFindingsByProvenance[provenance].orEmpty().toSortedSet()
