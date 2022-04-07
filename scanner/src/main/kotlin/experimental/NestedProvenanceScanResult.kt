@@ -167,10 +167,16 @@ data class NestedProvenanceScanResult(
 
         val pathsWithinProvenances = provenances.filter {
             val provenancePath = getPath(it)
-            provenancePath.isEmpty() || path.startsWith("$provenancePath/")
+            provenancePath.isEmpty() || provenancePath == path || provenancePath.startsWith("$path/") ||
+                    path.startsWith("$provenancePath/")
         }.associateWith { provenance ->
             val provenancePath = getPath(provenance)
-            path.removePrefix("$provenancePath/")
+
+            when {
+                provenancePath.isEmpty() -> path
+                path.startsWith("$provenancePath/") -> path.removePrefix("$provenancePath/")
+                else -> ""
+            }
         }
 
         fun KnownProvenance.withVcsPath() =
