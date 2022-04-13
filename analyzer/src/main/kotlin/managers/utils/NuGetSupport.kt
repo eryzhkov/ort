@@ -54,6 +54,7 @@ import org.ossreviewtoolkit.analyzer.managers.utils.NuGetAllPackageData.PackageS
 import org.ossreviewtoolkit.analyzer.managers.utils.NuGetAllPackageData.ServiceIndex
 import org.ossreviewtoolkit.downloader.VersionControlSystem
 import org.ossreviewtoolkit.model.Hash
+import org.ossreviewtoolkit.model.HashAlgorithm
 import org.ossreviewtoolkit.model.Identifier
 import org.ossreviewtoolkit.model.OrtIssue
 import org.ossreviewtoolkit.model.Package
@@ -67,11 +68,16 @@ import org.ossreviewtoolkit.model.VcsType
 import org.ossreviewtoolkit.model.createAndLogIssue
 import org.ossreviewtoolkit.model.orEmpty
 import org.ossreviewtoolkit.utils.common.collectMessagesAsString
+import org.ossreviewtoolkit.utils.common.safeDeleteRecursively
 import org.ossreviewtoolkit.utils.common.searchUpwardsForFile
+import org.ossreviewtoolkit.utils.core.ORT_NAME
 import org.ossreviewtoolkit.utils.core.OkHttpClientHelper
 import org.ossreviewtoolkit.utils.core.await
+import org.ossreviewtoolkit.utils.core.createOrtTempDir
 import org.ossreviewtoolkit.utils.core.log
 import org.ossreviewtoolkit.utils.core.logOnce
+import org.ossreviewtoolkit.utils.spdx.SpdxConstants
+import org.ossreviewtoolkit.utils.spdx.toSpdxId
 
 internal const val OPTION_DIRECT_DEPENDENCIES_ONLY = "directDependenciesOnly"
 
@@ -274,7 +280,19 @@ private fun parseLicenses(spec: PackageSpec?): SortedSet<String> {
 
     val licenseUrl = data.licenseUrl?.takeUnless { it == "https://aka.ms/deprecateLicenseUrl" } ?: return sortedSetOf()
 
-    return sortedSetOf(licenseUrl)
+    val licenses = sortedSetOf(licenseUrl)
+    val tempDir = createOrtTempDir("NuGetSupport")
+
+    OkHttpClientHelper.downloadFile(licenseUrl, tempDir).onSuccess {
+        val algorithm = HashAlgorithm.SHA1
+        val hash = algorithm.calculate(it)
+        val licenseRef = "$SpdxConstants.LICENSE_REF_PREFIX$ORT_NAME-hash-$algorithm-$hash-${it.name}".toSpdxId()
+        licenses += licenseRef
+    }
+
+    tempDir.safeDeleteRecursively()
+
+    return licenses
 }
 
 /**
