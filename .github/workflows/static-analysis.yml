@@ -36,6 +36,8 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v3
+    - name: Configure the Git workspace as a safe directory
+      run: git config --global --add safe.directory /github/workspace
     - name: Check Links
       uses: gaurav-nelson/github-action-markdown-link-check@v1
       with:
